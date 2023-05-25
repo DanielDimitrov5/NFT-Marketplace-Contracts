@@ -4,9 +4,11 @@ pragma solidity 0.8.18;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-error Marketplace__ItemWithThisIdDoesNotExist();
+error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
+error Marketplace__ThisItemIsNotListedForSale(uint256 id);
 error Marketplace__YouAreNotTheOwnerOfThisToken();
 error Marketplace__ItemAlreadyListed(bytes32 id);
+error Marketplace__NotEnoughtFunds();
 
 contract Marketplace {
     using Counters for Counters.Counter;
@@ -47,15 +49,25 @@ contract Marketplace {
     );
 
     event LogItemListed(
-        bytes32 id,
+        uint256 id,
         IERC721 indexed nftContract,
         uint256 tokenId,
         address indexed seller,
         uint256 price
     );
 
+    event LogItemSold(
+        uint256 id,
+        IERC721 indexed nftContract,
+        uint256 tokenId,
+        address indexed seller,
+        address indexed buyer,
+        uint256 price
+    );
+
     function addItem(IERC721 _nftContract, uint256 _tokenId) external {
-        if(_nftContract.ownerOf(_tokenId) != msg.sender) revert Marketplace__YouAreNotTheOwnerOfThisToken();
+        if (_nftContract.ownerOf(_tokenId) != msg.sender)
+            revert Marketplace__YouAreNotTheOwnerOfThisToken();
 
         itemCount.increment();
 
@@ -77,13 +89,16 @@ contract Marketplace {
     function listItem(uint256 id, uint256 _price) external {
         Item memory item = items[id];
 
-        if(item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist();
+        if (item.id == 0)
+            revert Marketplace__ItemWithThisIdDoesNotExist(item.id);
 
-        if(item.owner != msg.sender) revert Marketplace__YouAreNotTheOwnerOfThisToken();
+        if (item.owner != msg.sender)
+            revert Marketplace__YouAreNotTheOwnerOfThisToken();
 
         bytes32 idHash = getHash(item.nftContract, item.tokenId);
-        
-        if(listedItems[idHash].id == idHash) revert Marketplace__ItemAlreadyListed(idHash);
+
+        if (listedItems[idHash].id == idHash)
+            revert Marketplace__ItemAlreadyListed(idHash);
 
         listedItems[idHash] = ListedItems(
             idHash,
@@ -96,7 +111,7 @@ contract Marketplace {
         // item.nftContract.approve(address(this), item.tokenId);
 
         emit LogItemListed(
-            idHash,
+            id,
             item.nftContract,
             item.tokenId,
             msg.sender,
@@ -104,7 +119,73 @@ contract Marketplace {
         );
     }
 
-    function getHash(IERC721 _nftContract, uint256 _tokenId) public pure returns (bytes32) {
+    function buyItem(uint256 _id) external payable {
+        Item storage item = items[_id];
+
+        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_id);
+
+        bytes32 idHash = getHash(item.nftContract, item.tokenId);
+
+        ListedItems memory listedItem = listedItems[idHash];
+
+        if (listedItem.id == 0)
+            revert Marketplace__ThisItemIsNotListedForSale(_id);
+
+        if (getTotalPrice(_id) > msg.value)
+            revert Marketplace__NotEnoughtFunds();
+
+        listedItem.nftContract.safeTransferFrom(
+            listedItem.seller,
+            msg.sender,
+            listedItem.tokenId
+        );
+
+        uint256 totalPrice = getTotalPrice(_id);
+
+        if (msg.value > totalPrice) {
+            uint256 change = msg.value - totalPrice;
+            payable(msg.sender).transfer(change);
+        }
+
+        uint256 fee = totalPrice - listedItem.price;
+        payable(address(this)).transfer(fee); 
+        payable(item.owner).transfer(listedItem.price);
+
+        delete listedItems[idHash];
+
+        item.owner = msg.sender;
+
+        emit LogItemSold(
+            _id,
+            item.nftContract,
+            item.tokenId,
+            listedItem.seller,
+            msg.sender,
+            listedItem.price
+        );
+    }
+
+    function getTotalPrice(uint256 _id) public view returns (uint256) {
+        Item memory item = items[_id];
+
+        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_id);
+
+        bytes32 idHash = getHash(item.nftContract, item.tokenId);
+
+        ListedItems memory listedItem = listedItems[idHash];
+
+        if (listedItem.id == 0)
+            revert Marketplace__ThisItemIsNotListedForSale(_id);
+
+        return (listedItem.price * (100 + feePercent)) / 100;
+    }
+
+    function getHash(
+        IERC721 _nftContract,
+        uint256 _tokenId
+    ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_nftContract, _tokenId));
     }
+
+    receive() external payable {}
 }
