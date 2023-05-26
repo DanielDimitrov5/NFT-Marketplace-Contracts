@@ -1,6 +1,7 @@
 import { NFT__factory, Marketplace__factory, NFT, Marketplace } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
+import { solidityKeccak256 } from "ethers/lib/utils";
+import { ContractTransaction } from "@ethersproject/contracts";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
@@ -39,23 +40,55 @@ describe("NFT Marketplace", () => {
         });
     });
 
-    describe("addItem & listItem", () => {
-        let addItemtx: any;
+    describe("addCollection", () => {
+        let addCollectionTx: ContractTransaction;
 
         before(async () => {
-            const tx = await nft.mint(URI);
-            await tx.wait();
+            addCollectionTx = await marketplace.addCollection(nft.address);
+            await addCollectionTx.wait();
+        });
 
-            addItemtx = await marketplace.connect(deployer).addItem(nft.address, 1);
+        it("Should revert if collection is already added", async () => {
+            await expect(marketplace.addCollection(nft.address)).to.be.revertedWithCustomError(marketplace, "Marketplace__CollectionAlreadyAdded").withArgs(nft.address);
+        });
+
+        it("Should add collection", async () => {
+            expect(await marketplace.collectionCount()).to.equal(1);
+            expect(await marketplace.collections(1)).to.equal(nft.address);
+        });
+
+        it("Should emit event", async () => {
+            await expect(addCollectionTx).to.emit(marketplace, "LogCollectionAdded").withArgs(1, nft.address);
+        });
+    });
+
+    describe("addItem & listItem", () => {
+        let addItemtx: ContractTransaction;
+
+        before(async () => {
+            const nft1 = await nft.mint(URI);
+            await nft1.wait();
+
+            const nft2 = await nft.mint(URI);
+            await nft2.wait();
+
+            addItemtx = await marketplace.connect(deployer).addItem(1, 1);
             addItemtx.wait();
         });
 
         describe("addItem", () => {
 
-            it("Should revert not owner of the token", async () => {
-                await expect(marketplace.connect(addr1).addItem(nft.address, 1)).to.be.revertedWithCustomError(marketplace, "Marketplace__YouAreNotTheOwnerOfThisToken");
+            it("Should revert if collection is not added", async () => {
+                await expect(marketplace.addItem(2, 1)).to.be.revertedWithCustomError(marketplace, "Marketplace__CollectionIsNotAdded");
             });
 
+            it("Should revert if item is already added", async () => {
+                await expect(marketplace.addItem(1, 1)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemAlreadyAdded");
+            });
+
+            it("Should revert if not owner of the token", async () => {
+                await expect(marketplace.connect(addr1).addItem(1, 2)).to.be.revertedWithCustomError(marketplace, "Marketplace__YouAreNotTheOwnerOfThisToken");
+            });
 
             it("Should add item", async () => {
                 expect(await marketplace.itemCount()).to.equal(1);
@@ -72,7 +105,7 @@ describe("NFT Marketplace", () => {
 
         describe("listItem", () => {
 
-            let listItemTx: any;
+            let listItemTx: ContractTransaction;
             let id: string;
 
             before(async () => {
@@ -114,7 +147,7 @@ describe("NFT Marketplace", () => {
             const mint = await nft.mint(URI);
             await mint.wait();
 
-            await marketplace.addItem(nft.address, 2);
+            await marketplace.addItem(1, 2);
 
             total = await marketplace.getTotalPrice(1);
         });
@@ -140,7 +173,7 @@ describe("NFT Marketplace", () => {
 
             let fee: BigNumber;
 
-            let buyTx: any;
+            let buyTx: ContractTransaction;
 
             before(async () => {
                 const approve = await nft.connect(deployer).approve(marketplace.address, 1);
@@ -163,7 +196,6 @@ describe("NFT Marketplace", () => {
             });
 
             it("Should pay fee to contract", async () => {
-                // console.log(await ethers.provider.getBalance(marketplace.address));
                 expect(await ethers.provider.getBalance(marketplace.address)).to.equal(fee);
             });
 
@@ -196,6 +228,27 @@ describe("NFT Marketplace", () => {
 
     });
 
+    describe("withdraw", () => {
+
+        it("Should revert if not owner", async () => {
+            await expect(marketplace.connect(addr1).withdraw()).to.be.revertedWith("Ownable: caller is not the owner");
+        });
+
+        it("Should withdraw", async () => {
+            const balanceContractBefore = await ethers.provider.getBalance(marketplace.address);
+            const balanceBefore = await deployer.getBalance();
+
+            const withdrawTx = await marketplace.withdraw();
+            await withdrawTx.wait();
+
+            const balanceContractAfter = await ethers.provider.getBalance(marketplace.address);
+            const balanceAfter = await deployer.getBalance();
+
+            expect(balanceContractAfter).to.equal(0);
+            expect(balanceAfter).to.be.closeTo(balanceBefore.add(balanceContractBefore), 100000000000000);
+        });
+    });
+
     describe("heleper functions", () => {
 
         describe("getTotalPrice", () => {
@@ -204,7 +257,7 @@ describe("NFT Marketplace", () => {
                 const mint = await nft.mint(URI);
                 await mint.wait();
 
-                await marketplace.addItem(nft.address, 3);
+                await marketplace.addItem(1, 3);
             });
 
             it("Should revert if item with this Id does not exist", async () => {
@@ -231,13 +284,13 @@ describe("NFT Marketplace", () => {
 
         describe("getHash", () => {
 
-            // it("Should return expected hash", async () => {
-            //     const hash = await marketplace.getHash(nft.address, 1);
+            it("Shoudl return the expected hash", async () => {
+                const hash = await marketplace.getHash(nft.address, 1);
 
-            //     const expectedHash = keccak256(toUtf8Bytes(nft.address + "1"));
+                const expectedHash = solidityKeccak256(["address", "uint256"], [nft.address, 1]);
 
-            //     expect(hash).to.equal(expectedHash);
-            // });
+                expect(hash).to.equal(expectedHash);
+            });
         });
 
     });

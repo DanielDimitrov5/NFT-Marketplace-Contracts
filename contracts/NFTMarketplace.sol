@@ -3,27 +3,39 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "hardhat/console.sol";
+
+error Marketplace__CollectionAlreadyAdded(IERC721 nftCollection);
+error Marketplace__CollectionIsNotAdded();
 error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
 error Marketplace__ThisItemIsNotListedForSale(uint256 id);
 error Marketplace__YouAreNotTheOwnerOfThisToken();
+error Marketplace__ItemAlreadyAdded();
 error Marketplace__ItemAlreadyListed(bytes32 id);
 error Marketplace__NotEnoughtFunds();
 
-contract Marketplace {
+contract Marketplace is Ownable {
     using Counters for Counters.Counter;
 
     address payable public immutable feeAccount;
     uint8 public immutable feePercent;
 
     Counters.Counter public itemCount;
+    Counters.Counter public collectionCount;
 
     constructor(address payable _feeAccount, uint8 _feePercent) {
         feeAccount = _feeAccount;
         feePercent = _feePercent;
     }
 
+    mapping(uint256 => IERC721) public collections;
+    mapping(IERC721 => bool) private isCollectionAdded;
+
     mapping(uint256 => Item) public items;
+    mapping(bytes32 => bool) private isItemAdded;
+
     mapping(bytes32 => ListedItems) public listedItems;
 
     struct Item {
@@ -40,6 +52,8 @@ contract Marketplace {
         address payable seller;
         uint256 price;
     }
+
+    event LogCollectionAdded(uint256 id, IERC721 indexed nftCollection);
 
     event LogItemAdded(
         uint256 id,
@@ -65,22 +79,44 @@ contract Marketplace {
         uint256 price
     );
 
-    function addItem(IERC721 _nftContract, uint256 _tokenId) external {
-        if (_nftContract.ownerOf(_tokenId) != msg.sender)
-            revert Marketplace__YouAreNotTheOwnerOfThisToken();
+    function addCollection(IERC721 _nftCollection) external {
+        if (isCollectionAdded[_nftCollection])
+            revert Marketplace__CollectionAlreadyAdded(_nftCollection);
+
+        collectionCount.increment();
+
+        collections[collectionCount.current()] = _nftCollection;
+        isCollectionAdded[_nftCollection] = true;
+
+        emit LogCollectionAdded(collectionCount.current(), _nftCollection);
+    }
+
+    function addItem(uint256 _collectionId, uint256 _tokenId) external {
+        IERC721 nftCollection = collections[_collectionId];
+
+        if (isCollectionAdded[nftCollection] == false) revert Marketplace__CollectionIsNotAdded();
+
+        bytes32 idHash = getHash(nftCollection, _tokenId);
+        
+        if (isItemAdded[idHash]) revert Marketplace__ItemAlreadyAdded();
+
+        if (nftCollection.ownerOf(_tokenId) != msg.sender) revert Marketplace__YouAreNotTheOwnerOfThisToken();
+
 
         itemCount.increment();
 
         items[itemCount.current()] = Item(
             itemCount.current(),
-            _nftContract,
+            nftCollection,
             _tokenId,
             msg.sender
         );
 
+        isItemAdded[idHash] = true;
+
         emit LogItemAdded(
             itemCount.current(),
-            _nftContract,
+            nftCollection,
             _tokenId,
             msg.sender
         );
@@ -148,7 +184,7 @@ contract Marketplace {
         }
 
         uint256 fee = totalPrice - listedItem.price;
-        payable(address(this)).transfer(fee); 
+        payable(address(this)).transfer(fee);
         payable(item.owner).transfer(listedItem.price);
 
         delete listedItems[idHash];
@@ -163,6 +199,10 @@ contract Marketplace {
             msg.sender,
             listedItem.price
         );
+    }
+
+    function withdraw() external onlyOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 
     function getTotalPrice(uint256 _id) public view returns (uint256) {
