@@ -203,7 +203,7 @@ contract Marketplace is Ownable {
         if (listedItem.id == 0)
             revert Marketplace__ThisItemIsNotListedForSale(_id);
 
-        if (getTotalPrice(_id) > msg.value)
+        if (listedItem.price > msg.value) //???
             revert Marketplace__NotEnoughtFunds();
 
         listedItem.nftContract.safeTransferFrom(
@@ -212,16 +212,16 @@ contract Marketplace is Ownable {
             listedItem.tokenId
         );
 
-        uint256 totalPrice = getTotalPrice(_id);
+        uint256 sellerMargin = listedItem.price * (100 - feePercent) / 100;
 
-        if (msg.value > totalPrice) {
-            uint256 change = msg.value - totalPrice;
+        if (msg.value > listedItem.price) {
+            uint256 change = msg.value - listedItem.price;
             payable(msg.sender).transfer(change);
         }
 
-        uint256 fee = totalPrice - listedItem.price;
+        uint256 fee = listedItem.price - sellerMargin;
         payable(address(this)).transfer(fee);
-        payable(item.owner).transfer(listedItem.price);
+        payable(item.owner).transfer(listedItem.price - fee);
 
         delete listedItems[idHash];
 
@@ -321,21 +321,6 @@ contract Marketplace is Ownable {
 
     function withdraw() external onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
-    }
-
-    function getTotalPrice(uint256 _id) public view returns (uint256) {
-        Item memory item = items[_id];
-
-        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_id);
-
-        bytes32 idHash = getHash(item.nftContract, item.tokenId);
-
-        ListedItems memory listedItem = listedItems[idHash];
-
-        if (listedItem.id == 0)
-            revert Marketplace__ThisItemIsNotListedForSale(_id);
-
-        return (listedItem.price * (100 + feePercent)) / 100;
     }
 
     function getHash(

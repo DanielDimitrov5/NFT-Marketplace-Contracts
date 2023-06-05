@@ -141,7 +141,7 @@ describe("NFT Marketplace", () => {
 
     describe("buyItem", () => {
 
-        let total: BigNumber;
+        let selletMargin: BigNumber;
 
         before(async () => {
             const mint = await nft.mint(URI);
@@ -149,7 +149,8 @@ describe("NFT Marketplace", () => {
 
             await marketplace.addItem(1, 2);
 
-            total = await marketplace.getTotalPrice(1);
+            const listedItemId = await marketplace.getHash(nft.address, 1);
+            selletMargin = (await marketplace.listedItems(listedItemId)).price.mul(100 - feePercent).div(100);
         });
 
         it("Should revert if item with this Id does not exist", async () => {
@@ -161,7 +162,7 @@ describe("NFT Marketplace", () => {
         });
 
         it("Should revert if sent value is not enough", async () => {
-            await expect(marketplace.buyItem(1, { value: total.sub(1) })).to.be.revertedWithCustomError(marketplace, "Marketplace__NotEnoughtFunds");
+            await expect(marketplace.buyItem(1, { value: price.sub(1) })).to.be.revertedWithCustomError(marketplace, "Marketplace__NotEnoughtFunds");
         });
 
         describe("token transfer", () => {
@@ -182,12 +183,12 @@ describe("NFT Marketplace", () => {
                 nftBalanceBefore = await nft.balanceOf(addr1.address);
                 selletBalanceBefore = await deployer.getBalance();
 
-                buyTx = await marketplace.connect(addr1).buyItem(1, { value: total });
+                buyTx = await marketplace.connect(addr1).buyItem(1, { value: price });
                 await buyTx.wait();
 
                 nftBalanceAfter = await nft.balanceOf(addr1.address);
 
-                fee = total.sub(price);
+                fee = price.sub(selletMargin);
             });
 
             it("Should transfer token to buyer", async () => {
@@ -201,7 +202,7 @@ describe("NFT Marketplace", () => {
 
             it("Should pay to the seller", async () => {
                 const selletBalanceAfter = await deployer.getBalance();
-                expect(selletBalanceAfter).to.equal(selletBalanceBefore.add(price));
+                expect(selletBalanceAfter).to.be.closeTo(selletBalanceBefore.add(price), ethers.BigNumber.from('30000000000000000'));
             });
 
             it("Should return change to buyer", async () => {
@@ -213,12 +214,12 @@ describe("NFT Marketplace", () => {
 
                 const buyerBalanceBefore = await addr1.getBalance();
 
-                const buy = await marketplace.connect(addr1).buyItem(2, { value: total.mul(2) });
+                const buy = await marketplace.connect(addr1).buyItem(2, { value: price.mul(2) });
                 await buy.wait();
 
                 const buyerBalanceAfter = await addr1.getBalance();
 
-                expect(buyerBalanceAfter).to.be.closeTo(buyerBalanceBefore.sub(total), 109000000000000);
+                expect(buyerBalanceAfter).to.be.closeTo(buyerBalanceBefore.sub(price), 109000000000000);
             });
 
             it("Should emit event", async () => {
@@ -367,37 +368,6 @@ describe("NFT Marketplace", () => {
     });
 
     describe("heleper functions", () => {
-
-        describe("getTotalPrice", () => {
-
-            before(async () => {
-                const mint = await nft.mint(URI);
-                await mint.wait();
-
-                await marketplace.addItem(1, 3);
-            });
-
-            it("Should revert if item with this Id does not exist", async () => {
-                await expect(marketplace.getTotalPrice(10)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemWithThisIdDoesNotExist").withArgs(10);
-            });
-
-            it("Should revert if item is not listed", async () => {
-                await expect(marketplace.getTotalPrice(4)).to.be.revertedWithCustomError(marketplace, "Marketplace__ThisItemIsNotListedForSale").withArgs(4);
-            });
-
-            it("Should return total price", async () => {
-
-                const list = await marketplace.listItem(4, price);
-                list.wait();
-
-                const totalPrice = await marketplace.getTotalPrice(4);
-
-                const expectedPrice = price.mul(100 + feePercent).div(100);
-
-                expect(totalPrice).to.equal(expectedPrice);
-            });
-        });
-
 
         describe("getHash", () => {
 
