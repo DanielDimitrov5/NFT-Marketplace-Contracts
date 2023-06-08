@@ -27,7 +27,7 @@
 ![User stories](https://i.imgur.com/MeIebUt.png)
 
 ## Architecture diagram
-![Architecture diagram](https://i.imgur.com/7zrBOQS.png)
+![Architecture diagram](https://i.imgur.com/IJIJtUt.png)
 
 ## NFTMarketplace
 | Function      | Parameters                                | Visibility & Modifiers | Description                                                                                                                                |
