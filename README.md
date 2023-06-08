@@ -1,5 +1,5 @@
 # NFT Marketplace 
- ### How it wotks?
+ ### How it works?
   This is a platform that enables users to register NFT collections, sell or buy NFTs, and make offers on non-listed items. Here's how the marketplace works:
  
  1. Users can create their own NFT collections with the NFT contract.
