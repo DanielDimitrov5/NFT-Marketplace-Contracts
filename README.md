@@ -1,4 +1,19 @@
-![Architecture diagram](/Architecture.drawio.png);
+# NFT Marketplace 
+
+## User stories
+
+- **User:** Account willing to register NFT collections, sell or buy NFT.
+- **Seller:** User who can add and list his NFTs or accept offers for his non-listed items on the Marketplace.
+- **Buyer:** User who can buy listed items or place offers for other users' non-listed items.
+- **Marketplace:** Smart contract which handles operations like adding, listing, buying, etc.
+- **NFT:** ERC721 Smart contract which is considered a **collection** in the context of this project.
+- **Item:** Structure on the Marketplace that represents NFTs with price and other useful properies.
+- **Offer:** Structure that represents offer for non-listed item.
+- **Owner:** Owner of the contract. He can withdraw the accumulated money from the Marketplace contract.
+
+![User stories](/readme/UserStories.drawio.png)
+
+![Architecture diagram](/readme/Architecture.drawio.png)
 
 | Function      | Parameters                                | Visibility & Modifiers | Description                                                                                                                                |
 | ------------- | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
