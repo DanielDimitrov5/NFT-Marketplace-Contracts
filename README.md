@@ -1,5 +1,16 @@
 # NFT Marketplace 
-
+ ### How it wotks?
+  This is a platform that enables users to register NFT collections, sell or buy NFTs, and make offers on non-listed items. Here's how the marketplace works:
+ 
+ 1. Users can register their NFT collections with the Marketplace by using the `addCollection` function. This allows the Marketplace to track and manage the collections. In the context of this Marketplace a collection is considered a single ERC721 contract.
+ 2. Users who own NFTs, can add their NFTs to the Marketplace using the `addItem` function. They specify the collection ID and the token ID of the NFT they want to add. This ensures that only NFTs from registered collections can be added to the marketplace.
+ 3. Sellers can list their NFTs for sale by using the `listItem` function. They provide the item ID and set the price for the listed item. Only NFTs that have been previously added to the marketplace can be listed for sale.
+ 4. Buyers can purchase NFTs that are listed for sale by using the `buyItem` function. They specify the item ID of the NFT they want to buy and send the required payment. Upon successful purchase, the NFT is transferred from the seller to the buyer, and the seller receives the payment. A fee is also charged by the marketplace contract.
+ 5. Buyers can make offers on non-listed items by using the `placeOffer` function. They provide the item ID and the price they are willing to pay for the NFT. Similar to listing, the item must have been previously added to the marketplace but not listed for sale!
+ 6. Sellers have the option to accept offers placed by buyers using the `acceptOffer` function. They specify the item ID and the address of the offerer whose offer they want to accept.
+ 7. Claiming Items: Once a seller accepts an offer, the buyer can claim the item using the `claimItem` function. This transfers the NFT from the seller to the buyer and initiates the payment to the seller.
+ 8. The owner of the marketplace contract can withdraw the accumulated fees from the contract using the `withdraw` function. This allows the owner to collect the earnings generated from the marketplace operations.
+ 
 ## User stories
 
 - **User:** Account willing to register NFT collections, sell or buy NFT.
