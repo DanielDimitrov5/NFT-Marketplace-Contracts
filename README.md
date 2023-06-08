@@ -2,8 +2,8 @@
  ### How it wotks?
   This is a platform that enables users to register NFT collections, sell or buy NFTs, and make offers on non-listed items. Here's how the marketplace works:
  
-1. Users can create their own NFT collections with the NFT contract.
- 2. Users can mint NFTs.They should provide metadata which will be stored in IPFS.
+ 1. Users can create their own NFT collections with the NFT contract.
+ 2. Users can mint NFTs. They should provide metadata which will be stored in IPFS.
  3. Users can register their NFT collections with the Marketplace by using the `addCollection` function. This allows the Marketplace to track and manage the collections. In the context of this Marketplace a collection is considered a single ERC721 contract.
  4. Users who own NFTs, can add their NFTs to the Marketplace using the `addItem` function. They specify the collection ID and the token ID of the NFT they want to add. This ensures that only NFTs from registered collections can be added to the marketplace.
  5. Sellers can list their NFTs for sale by using the `listItem` function. They provide the item ID and set the price for the listed item. Only NFTs that have been previously added to the marketplace can be listed for sale.
