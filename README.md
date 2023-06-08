@@ -13,6 +13,7 @@
 
 ![User stories](/readme/UserStories.drawio.png)
 
+## Architecture diagram
 ![Architecture diagram](/readme/Architecture.drawio.png)
 
 | Function      | Parameters                                | Visibility & Modifiers | Description                                                                                                                                |
