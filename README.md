@@ -41,7 +41,7 @@
 ### Useablity specifics
 
 1. After executing `listItem` function the Marketplace should be allowed to spend the NFT via his `approve` function.
-2. After executing 'acceptOffer' function the Marketplace should be allowed to spend the NFT via his `approve` function.
+2. After executing `acceptOffer` function the Marketplace should be allowed to spend the NFT via his `approve` function.
 
 ## Events
 
