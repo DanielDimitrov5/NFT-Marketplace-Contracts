@@ -50,7 +50,7 @@
 
 1. After executing `listItem` function the Marketplace should be allowed to spend the NFT via his `approve` function.
 2. After executing `acceptOffer` function the Marketplace should be allowed to spend the NFT via his `approve` function.
-3. Before minting NFT vis `mint` function, Metadata should be provided and stored to IPFS, the produced hash is being set as NFT metadata URI.
+3. Before minting NFT via `mint` function, Metadata should be provided and stored to IPFS, the produced hash is being set as NFT metadata URI.
 
 ## Events
 ### NFTMarketplace
