@@ -158,8 +158,8 @@ contract Marketplace is Ownable {
         );
     }
 
-    function listItem(uint256 _id, uint256 _price) external {
-        Item memory item = items[_id];
+    function listItem(uint256 _itemId, uint256 _price) external {
+        Item memory item = items[_itemId];
 
         if (item.id == 0)
             revert Marketplace__ItemWithThisIdDoesNotExist(item.id);
@@ -183,7 +183,7 @@ contract Marketplace is Ownable {
         // item.nftContract.approve(address(this), item.tokenId);
 
         emit LogItemListed(
-            _id,
+            _itemId,
             item.nftContract,
             item.tokenId,
             msg.sender,
@@ -191,17 +191,17 @@ contract Marketplace is Ownable {
         );
     }
 
-    function buyItem(uint256 _id) external payable {
-        Item storage item = items[_id];
+    function buyItem(uint256 _itemId) external payable {
+        Item storage item = items[_itemId];
 
-        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_id);
+        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_itemId);
 
         bytes32 idHash = getHash(item.nftContract, item.tokenId);
 
         ListedItems memory listedItem = listedItems[idHash];
 
         if (listedItem.id == 0)
-            revert Marketplace__ThisItemIsNotListedForSale(_id);
+            revert Marketplace__ThisItemIsNotListedForSale(_itemId);
 
         if (listedItem.price > msg.value) //???
             revert Marketplace__NotEnoughtFunds();
@@ -228,7 +228,7 @@ contract Marketplace is Ownable {
         item.owner = msg.sender;
 
         emit LogItemSold(
-            _id,
+            _itemId,
             item.nftContract,
             item.tokenId,
             listedItem.seller,
