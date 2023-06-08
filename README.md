@@ -37,3 +37,21 @@
 | acceptOffer   | uint256 \_itemId, address offerer         | external               | The seller accepts a placed offer.                                                                                                         |
 | claimItem     | uint256 \_itemId                          | external, payable      | The buyer claims his item if the NFT owner has accepted his offer. It transfers the NFT to the buyer and pays the seller.                  |
 | withdraw      | \-                                        | external, OnlyOwner    | The owner withdraws the accumulated fee from the contract.                                                                                 |
+
+### Useablity specifics
+
+1. After executing `listItem` function the Marketplace should be allowed to spend the NFT via his `approve` function.
+2. After executing 'acceptOffer' function the Marketplace should be allowed to spend the NFT via his `approve` function.
+
+## Events
+
+| Events             | Action                                         | Parameters                                                                                                                                                                            |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LogCollectionAdded | A Collection has been added to the Marketplace | `uint256 id, IERC721 indexed nftCollection`                                                                                                                                            |
+| LogItemAdded       | An Item has been added to the Marketplace      | `uint256 id,` `IERC721 indexed nftContract,` `uint256 tokenId,` `address indexed owner`                                                              |
+| LogItemListed      | An Item has been listed to the Marketplace     | `uint256 id,` `IERC721 indexed nftContract,` `uint256 tokenId,` `address indexed seller,` `uint256 price`                                   |
+| LogItemSold        | An Item has been sold                          | `uint256 id,` `IERC721 indexed nftContract,` `uint256 tokenId,` `address indexed seller,` `address indexed buyer,` `uint256 price` |
+| LogOfferPlaced     | An Offer has been placed                       | `uint256 id,` `IERC721 indexed nftContract,` `uint256 tokenId,` `address indexed buyer,` `uint256 price`                                    |
+| LogOfferAccepted   | An Offer has been accepted                     | `uint256 indexed id,` `address indexed offerer`                                                                                                                        |
+| LogItemClaimed     | An Item has been claimed                       | `uint256 indexed id,` `address indexed claimer`                                                                                                                        |
+
