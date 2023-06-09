@@ -95,7 +95,7 @@ describe("NFT Marketplace", () => {
 
                 const items = await marketplace.items(1);
 
-                expect(items).to.deep.equal([1, nft.address, 1, deployer.address]);
+                expect(items).to.deep.equal([1, nft.address, 1, deployer.address, 0]);
             });
 
             it("Should emit event", async () => {
@@ -106,27 +106,31 @@ describe("NFT Marketplace", () => {
         describe("listItem", () => {
 
             let listItemTx: ContractTransaction;
-            let id: string;
 
             before(async () => {
                 listItemTx = await marketplace.listItem(1, price);
                 listItemTx.wait();
 
-                id = await marketplace.getHash(nft.address, 1);
+                const addItemTx = await marketplace.addItem(1, 2);
+                await addItemTx.wait();
             });
 
             it("Should revert if item is not added", async () => {
-                await expect(marketplace.listItem(2, price)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemWithThisIdDoesNotExist");
+                await expect(marketplace.listItem(20, price)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemWithThisIdDoesNotExist");
             });
 
             it("Should revert not owner of the token", async () => {
                 await expect(marketplace.connect(addr1).listItem(1, price)).to.be.revertedWithCustomError(marketplace, "Marketplace__YouAreNotTheOwnerOfThisToken");
             });
 
-            it("Should list item", async () => {
-                const item = await marketplace.listedItems(id);
+            it("Should revert if price is 0", async () => {
+                await (expect(marketplace.listItem(2, 0))).to.be.revertedWithCustomError(marketplace, "Marketplace__PriceCannotBeZero");
+            });
 
-                expect(item).to.deep.equal([id, nft.address, 1, deployer.address, price]);
+            it("Should list item", async () => {
+                const item = await marketplace.items(1);
+
+                expect(item).to.deep.equal([1, nft.address, 1, deployer.address, price]);
             });
 
             it("Should emit event", async () => {
@@ -134,7 +138,7 @@ describe("NFT Marketplace", () => {
             });
 
             it("Should revert if item is already listed", async () => {
-                await expect(marketplace.listItem(1, price)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemAlreadyListed").withArgs(id);
+                await expect(marketplace.listItem(1, price)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemAlreadyListed").withArgs(1);
             });
         });
     });
@@ -147,14 +151,13 @@ describe("NFT Marketplace", () => {
             const mint = await nft.mint(URI);
             await mint.wait();
 
-            await marketplace.addItem(1, 2);
+            await marketplace.addItem(1, 3);
 
-            const listedItemId = await marketplace.getHash(nft.address, 1);
-            selletMargin = (await marketplace.listedItems(listedItemId)).price.mul(100 - feePercent).div(100);
+            selletMargin = (await marketplace.items(1)).price.mul(100 - feePercent).div(100);
         });
 
         it("Should revert if item with this Id does not exist", async () => {
-            await expect(marketplace.buyItem(3)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemWithThisIdDoesNotExist").withArgs(3);
+            await expect(marketplace.buyItem(20)).to.be.revertedWithCustomError(marketplace, "Marketplace__ItemWithThisIdDoesNotExist").withArgs(20);
         });
 
         it("Should revert if item is not listed", async () => {
@@ -270,7 +273,7 @@ describe("NFT Marketplace", () => {
                 await place.wait();
 
                 const offer = await marketplace.offers(4, addr1.address);
-                expect(offer).to.deep.equal([4, nft.address, 5, deployer.address, price, false]);
+                expect(offer).to.deep.equal([4, nft.address, 4, deployer.address, price, false]);
 
                 expect(await marketplace.itemOfferers(4, 0)).to.equal(addr1.address);
             });
@@ -290,7 +293,7 @@ describe("NFT Marketplace", () => {
                 await accept.wait();
 
                 const offer = await marketplace.offers(4, addr1.address);
-                expect(offer).to.deep.equal([4, nft.address, 5, deployer.address, price, true]);
+                expect(offer).to.deep.equal([4, nft.address, 4, deployer.address, price, true]);
             });
 
             it("Should emit event", async () => {
@@ -331,7 +334,7 @@ describe("NFT Marketplace", () => {
             it("Should claim item and pay seller", async () => {
                 const selletBalanceBefore = await deployer.getBalance();
 
-                const approve = await nft.approve(marketplace.address, 6);
+                const approve = await nft.approve(marketplace.address, 5);
                 await approve.wait();
 
                 const claim = await marketplace.connect(addr1).claimItem(5, {value: price});
@@ -340,8 +343,12 @@ describe("NFT Marketplace", () => {
                 const selletBalanceAfter = await deployer.getBalance();
 
                 expect(selletBalanceAfter).to.be.closeTo(selletBalanceBefore.add(price), 100000000000000);                
-                expect(await nft.ownerOf(6)).to.equal(addr1.address);                
+                expect(await nft.ownerOf(5)).to.equal(addr1.address);                
                 expect(await marketplace.offers(5, addr1.address)).to.deep.equal([0, ethers.constants.AddressZero, 0, ethers.constants.AddressZero, 0, false]);
+            });
+
+            it("Should set new owner", async () => {
+                expect(await marketplace.items(5)).to.deep.equal([5, nft.address, 5, addr1.address, 0]);
             });
         });
     });

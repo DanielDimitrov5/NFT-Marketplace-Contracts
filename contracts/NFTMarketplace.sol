@@ -7,12 +7,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "hardhat/console.sol";
 
-error Marketplace__CollectionAlreadyAdded(IERC721 nftCollection);
+error Marketplace__CollectionAlreadyAdded(address nftCollection);
 error Marketplace__CollectionIsNotAdded();
 error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
 error Marketplace__YouAreNotTheOwnerOfThisToken();
 error Marketplace__ItemAlreadyAdded();
-error Marketplace__ItemAlreadyListed(bytes32 id);
+error Marketplace__ItemAlreadyListed(uint256 id);
 error Marketplace__ThisItemIsNotListedForSale(uint256 id);
 error Marketplace__NotEnoughtFunds();
 error Marketplace__ThisItemIsListedForSale();
@@ -35,53 +35,44 @@ contract Marketplace is Ownable {
         feePercent = _feePercent;
     }
 
-    mapping(uint256 => IERC721) public collections;
-    mapping(IERC721 => bool) private isCollectionAdded;
+    mapping(uint256 => address) public collections;
+    mapping(address => bool) private isCollectionAdded;
 
     mapping(uint256 => Item) public items;
     mapping(bytes32 => bool) private isItemAdded;
-
-    mapping(bytes32 => ListedItems) public listedItems;
 
     mapping(uint256 => mapping(address => Offer)) public offers;
     mapping(uint256 => address[]) public itemOfferers;
 
     struct Item {
         uint256 id;
-        IERC721 nftContract;
+        address nftContract;
         uint256 tokenId;
         address owner;
-    }
-
-    struct ListedItems {
-        bytes32 id;
-        IERC721 nftContract;
-        uint256 tokenId;
-        address payable seller;
         uint256 price;
     }
 
     struct Offer {
         uint256 itemId;
-        IERC721 nftContract;
+        address nftContract;
         uint256 tokenId;
         address payable seller;
         uint256 price;
         bool isAccepted;
     }
 
-    event LogCollectionAdded(uint256 id, IERC721 indexed nftCollection);
+    event LogCollectionAdded(uint256 id, address indexed nftCollection);
 
     event LogItemAdded(
         uint256 id,
-        IERC721 indexed nftContract,
+        address indexed nftContract,
         uint256 tokenId,
         address indexed owner
     );
 
     event LogItemListed(
         uint256 id,
-        IERC721 indexed nftContract,
+        address indexed nftContract,
         uint256 tokenId,
         address indexed seller,
         uint256 price
@@ -89,7 +80,7 @@ contract Marketplace is Ownable {
 
     event LogItemSold(
         uint256 id,
-        IERC721 indexed nftContract,
+        address indexed nftContract,
         uint256 tokenId,
         address indexed seller,
         address indexed buyer,
@@ -98,23 +89,17 @@ contract Marketplace is Ownable {
 
     event LogOfferPlaced(
         uint256 id,
-        IERC721 indexed nftContract,
+        address indexed nftContract,
         uint256 tokenId,
         address indexed buyer,
         uint256 price
     );
 
-    event LogOfferAccepted(
-        uint256 indexed id,
-        address indexed offerer
-    );
+    event LogOfferAccepted(uint256 indexed id, address indexed offerer);
 
-    event LogItemClaimed(
-        uint256 indexed id,
-        address indexed claimer
-    );
+    event LogItemClaimed(uint256 indexed id, address indexed claimer);
 
-    function addCollection(IERC721 _nftCollection) external {
+    function addCollection(address _nftCollection) external {
         if (isCollectionAdded[_nftCollection])
             revert Marketplace__CollectionAlreadyAdded(_nftCollection);
 
@@ -127,16 +112,16 @@ contract Marketplace is Ownable {
     }
 
     function addItem(uint256 _collectionId, uint256 _tokenId) external {
-        IERC721 nftCollection = collections[_collectionId];
+        address nftCollection = collections[_collectionId];
 
-        if (isCollectionAdded[nftCollection] == false)
+        if (!isCollectionAdded[nftCollection])
             revert Marketplace__CollectionIsNotAdded();
 
         bytes32 idHash = getHash(nftCollection, _tokenId);
 
         if (isItemAdded[idHash]) revert Marketplace__ItemAlreadyAdded();
 
-        if (nftCollection.ownerOf(_tokenId) != msg.sender)
+        if (IERC721(nftCollection).ownerOf(_tokenId) != msg.sender)
             revert Marketplace__YouAreNotTheOwnerOfThisToken();
 
         itemCount.increment();
@@ -145,7 +130,8 @@ contract Marketplace is Ownable {
             itemCount.current(),
             nftCollection,
             _tokenId,
-            msg.sender
+            msg.sender,
+            0
         );
 
         isItemAdded[idHash] = true;
@@ -159,7 +145,7 @@ contract Marketplace is Ownable {
     }
 
     function listItem(uint256 _itemId, uint256 _price) external {
-        Item memory item = items[_itemId];
+        Item storage item = items[_itemId];
 
         if (item.id == 0)
             revert Marketplace__ItemWithThisIdDoesNotExist(item.id);
@@ -167,18 +153,11 @@ contract Marketplace is Ownable {
         if (item.owner != msg.sender)
             revert Marketplace__YouAreNotTheOwnerOfThisToken();
 
-        bytes32 idHash = getHash(item.nftContract, item.tokenId);
+        if (_price == 0) revert Marketplace__PriceCannotBeZero();
 
-        if (listedItems[idHash].id == idHash)
-            revert Marketplace__ItemAlreadyListed(idHash);
+        if (item.price != 0) revert Marketplace__ItemAlreadyListed(item.id);
 
-        listedItems[idHash] = ListedItems(
-            idHash,
-            item.nftContract,
-            item.tokenId,
-            payable(msg.sender),
-            _price
-        );
+        item.price = _price;
 
         // item.nftContract.approve(address(this), item.tokenId);
 
@@ -194,46 +173,45 @@ contract Marketplace is Ownable {
     function buyItem(uint256 _itemId) external payable {
         Item storage item = items[_itemId];
 
-        if (item.id == 0) revert Marketplace__ItemWithThisIdDoesNotExist(_itemId);
+        if (item.id == 0)
+            revert Marketplace__ItemWithThisIdDoesNotExist(_itemId);
 
-        bytes32 idHash = getHash(item.nftContract, item.tokenId);
-
-        ListedItems memory listedItem = listedItems[idHash];
-
-        if (listedItem.id == 0)
+        if (item.price == 0)
             revert Marketplace__ThisItemIsNotListedForSale(_itemId);
 
-        if (listedItem.price > msg.value) //???
+        if (item.price > msg.value)
             revert Marketplace__NotEnoughtFunds();
 
-        listedItem.nftContract.safeTransferFrom(
-            listedItem.seller,
+        address seller = item.owner;
+        uint256 price = item.price;
+
+        IERC721(item.nftContract).safeTransferFrom(
+            seller,
             msg.sender,
-            listedItem.tokenId
+            item.tokenId
         );
 
-        uint256 sellerMargin = listedItem.price * (100 - feePercent) / 100;
+        uint256 sellerMargin = (price * (100 - feePercent)) / 100;
 
-        if (msg.value > listedItem.price) {
-            uint256 change = msg.value - listedItem.price;
+        if (msg.value > price) {
+            uint256 change = msg.value - price;
             payable(msg.sender).transfer(change);
         }
 
-        uint256 fee = listedItem.price - sellerMargin;
+        uint256 fee = item.price - sellerMargin;
         payable(address(this)).transfer(fee);
-        payable(item.owner).transfer(listedItem.price - fee);
+        payable(item.owner).transfer(item.price - fee);
 
-        delete listedItems[idHash];
-
+        item.price = 0;
         item.owner = msg.sender;
 
         emit LogItemSold(
             _itemId,
             item.nftContract,
             item.tokenId,
-            listedItem.seller,
+            seller,
             msg.sender,
-            listedItem.price
+            price
         );
     }
 
@@ -245,10 +223,8 @@ contract Marketplace is Ownable {
         if (item.id == 0)
             revert Marketplace__ItemWithThisIdDoesNotExist(_itemId);
 
-        bytes32 idHash = getHash(item.nftContract, item.tokenId);
-
-        if (listedItems[idHash].id != 0)
-            revert Marketplace__ItemAlreadyListed(idHash);
+        if (item.price != 0)
+            revert Marketplace__ItemAlreadyListed(item.id);
 
         if (_price == 0) revert Marketplace__PriceCannotBeZero();
 
@@ -302,20 +278,21 @@ contract Marketplace is Ownable {
 
         offer.seller.transfer(offer.price);
 
-        offer.nftContract.safeTransferFrom(
+        IERC721(offer.nftContract).safeTransferFrom(
             offer.seller,
             msg.sender,
             offer.tokenId
         );
 
+        Item storage item = items[_itemid];
+        item.owner = msg.sender;
+
         delete offers[_itemid][msg.sender];
         delete itemOfferers[_itemid];
 
-        emit LogItemClaimed(
-            _itemid,
-            msg.sender
-        );
+        emit LogItemClaimed(_itemid, msg.sender);
     }
+
     //
     // Offers
 
@@ -324,7 +301,7 @@ contract Marketplace is Ownable {
     }
 
     function getHash(
-        IERC721 _nftContract,
+        address _nftContract,
         uint256 _tokenId
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_nftContract, _tokenId));
