@@ -65,3 +65,6 @@
 | LogOfferAccepted   | An Offer has been accepted                     | `uint256 indexed id,` `address indexed offerer`                                                                                                                        |
 | LogItemClaimed     | An Item has been claimed                       | `uint256 indexed id,` `address indexed claimer`                                                                                                                        |
 
+- NFTMarketplace: 0xa79Ef7898394B79b809043B9CDE8Dbc1f3550E02
+- NFT: 0x78C3dbea63df38C52CE863989E09EfA38aDb7679
+
