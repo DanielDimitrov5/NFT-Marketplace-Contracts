@@ -185,12 +185,6 @@ contract Marketplace is Ownable {
         address seller = item.owner;
         uint256 price = item.price;
 
-        IERC721(item.nftContract).safeTransferFrom(
-            seller,
-            msg.sender,
-            item.tokenId
-        );
-
         uint256 sellerMargin = (price * (100 - feePercent)) / 100;
 
         if (msg.value > price) {
@@ -201,6 +195,12 @@ contract Marketplace is Ownable {
         uint256 fee = item.price - sellerMargin;
         payable(address(this)).transfer(fee);
         payable(item.owner).transfer(item.price - fee);
+
+        IERC721(item.nftContract).safeTransferFrom(
+            seller,
+            msg.sender,
+            item.tokenId
+        );
 
         item.price = 0;
         item.owner = msg.sender;
@@ -258,8 +258,6 @@ contract Marketplace is Ownable {
 
         if (offer.seller != msg.sender)
             revert Marketplace__YouAreNotTheOwnerOfThisToken();
-
-        // item.nftContract.approve(address(this), item.tokenId);
 
         offer.isAccepted = true;
 
