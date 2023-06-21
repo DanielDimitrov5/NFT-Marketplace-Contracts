@@ -30,10 +30,10 @@ describe("NFT", () => {
         const URI = "ipfs://QmQ9Z";
 
         it("Should mint a token", async () => {
-            const mint = await nft.connect(addr1).mint(URI);
+            const mint = await nft.mint(URI);
             await mint.wait();
 
-            expect(await nft.ownerOf(1)).to.equal(addr1.address);
+            expect(await nft.ownerOf(1)).to.equal(deployer.address);
 
             expect(await nft.tokenCount()).to.equal(1);
         });
@@ -47,6 +47,10 @@ describe("NFT", () => {
             await mint.wait();
 
             await expect(mint).to.emit(nft, "LogNftMinted").withArgs(2, deployer.address, URI);
+        });
+
+        it("Should not mint if not owner", async () => {
+            await expect(nft.connect(addr1).mint(URI)).to.be.revertedWith("Ownable: caller is not the owner");
         });
     });
 });

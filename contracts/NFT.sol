@@ -2,9 +2,10 @@
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract NFT is ERC721URIStorage {
+contract NFT is ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter public tokenCount;
@@ -16,7 +17,7 @@ contract NFT is ERC721URIStorage {
     /**
      * @dev Safely mints NFT to the sender and sets the provided `_tokenURI` as metadata.
      */
-    function mint(string memory _tokenURI) external returns (uint256) {
+    function mint(string memory _tokenURI) external onlyOwner returns (uint256) {
         tokenCount.increment();
 
         _safeMint(msg.sender, tokenCount.current());
