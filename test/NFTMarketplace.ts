@@ -168,6 +168,10 @@ describe("NFT Marketplace", () => {
             await expect(marketplace.buyItem(1, { value: price.sub(1) })).to.be.revertedWithCustomError(marketplace, "Marketplace__NotEnoughtFunds");
         });
 
+        it("Should revert if buyer is the owner of the token", async () => {
+            await expect(marketplace.connect(deployer).buyItem(1, { value: price })).to.be.revertedWithCustomError(marketplace, "Marketplace__YouCannotBuyYourOwnItem");
+        });
+
         describe("token transfer", () => {
 
             let nftBalanceBefore: BigNumber;

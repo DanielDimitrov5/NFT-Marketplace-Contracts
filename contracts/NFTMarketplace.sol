@@ -16,6 +16,7 @@ error Marketplace__ItemAlreadyListed(uint256 id);
 error Marketplace__ThisItemIsNotListedForSale(uint256 id);
 error Marketplace__NotEnoughtFunds();
 error Marketplace__ThisItemIsListedForSale();
+error Marketplace__YouCannotBuyYourOwnItem();
 error Marketplace__YouAlreadyMadeAnOffer();
 error Marketplace__OfferDoesNotExist(uint256 id);
 error Marketplace__YouAreNotTheOwnerOfThisOffer(uint256 id);
@@ -159,8 +160,6 @@ contract Marketplace is Ownable {
 
         item.price = _price;
 
-        // item.nftContract.approve(address(this), item.tokenId);
-
         emit LogItemListed(
             _itemId,
             item.nftContract,
@@ -181,6 +180,8 @@ contract Marketplace is Ownable {
 
         if (item.price > msg.value)
             revert Marketplace__NotEnoughtFunds();
+
+        if(item.owner == msg.sender) revert Marketplace__YouCannotBuyYourOwnItem();
 
         address seller = item.owner;
         uint256 price = item.price;
