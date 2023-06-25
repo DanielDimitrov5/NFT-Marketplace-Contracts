@@ -216,8 +216,6 @@ contract Marketplace is Ownable {
         );
     }
 
-    // Offers
-    //
     function placeOffer(uint256 _itemId, uint256 _price) external {
         Item memory item = items[_itemId];
 
@@ -292,9 +290,6 @@ contract Marketplace is Ownable {
         emit LogItemClaimed(_itemid, msg.sender);
     }
 
-    //
-    // Offers
-
     function withdraw() external onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
     }
@@ -304,6 +299,10 @@ contract Marketplace is Ownable {
         uint256 _tokenId
     ) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_nftContract, _tokenId));
+    }
+
+    function getOfferers(uint256 itemId) external view returns(address[] memory) {
+        return itemOfferers[itemId];
     }
 
     receive() external payable {}

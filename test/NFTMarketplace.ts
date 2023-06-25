@@ -332,7 +332,7 @@ describe("NFT Marketplace", () => {
                 const accept = await marketplace.acceptOffer(5, addr1.address);
                 await accept.wait();
 
-                await expect(marketplace.connect(addr1).claimItem(5, {value: price.div(2)})).to.be.revertedWithCustomError(marketplace, "Marketplace__NotEnoughtFunds");
+                await expect(marketplace.connect(addr1).claimItem(5, { value: price.div(2) })).to.be.revertedWithCustomError(marketplace, "Marketplace__NotEnoughtFunds");
             });
 
             it("Should claim item and pay seller", async () => {
@@ -341,13 +341,13 @@ describe("NFT Marketplace", () => {
                 const approve = await nft.approve(marketplace.address, 5);
                 await approve.wait();
 
-                const claim = await marketplace.connect(addr1).claimItem(5, {value: price});
+                const claim = await marketplace.connect(addr1).claimItem(5, { value: price });
                 await claim.wait();
 
                 const selletBalanceAfter = await deployer.getBalance();
 
-                expect(selletBalanceAfter).to.be.closeTo(selletBalanceBefore.add(price), 100000000000000);                
-                expect(await nft.ownerOf(5)).to.equal(addr1.address);                
+                expect(selletBalanceAfter).to.be.closeTo(selletBalanceBefore.add(price), 100000000000000);
+                expect(await nft.ownerOf(5)).to.equal(addr1.address);
                 expect(await marketplace.offers(5, addr1.address)).to.deep.equal([0, ethers.constants.AddressZero, 0, ethers.constants.AddressZero, 0, false]);
             });
 
@@ -388,6 +388,29 @@ describe("NFT Marketplace", () => {
                 const expectedHash = solidityKeccak256(["address", "uint256"], [nft.address, 1]);
 
                 expect(hash).to.equal(expectedHash);
+            });
+        });
+
+        describe("getOfferers", () => {
+
+            before(async () => {
+                const mint = await nft.mint(URI);
+                await mint.wait();
+
+                const add = await marketplace.addItem(1, 7);
+                await add.wait();
+
+                const offer1 = await marketplace.connect(addr1).placeOffer(7, price);
+                await offer1.wait();
+
+                const offer2 = await marketplace.connect(addr2).placeOffer(7, price.add(1));
+                await offer2.wait();
+            });
+
+            it("Should return the expected offerers", async () => {
+                const offerers = await marketplace.getOfferers(7);
+
+                expect(offerers).to.deep.equal([addr1.address, addr2.address]);
             });
         });
 
