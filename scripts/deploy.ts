@@ -6,7 +6,7 @@ async function main() {
     const nft: NFT = await nftFactory.deploy("NFT", "NFT");
 
     const marketplaceFactory = (await ethers.getContractFactory("Marketplace")) as Marketplace__factory;
-    const marketplace: Marketplace = await marketplaceFactory.deploy(3);
+    const marketplace: Marketplace = await marketplaceFactory.deploy(5);
 
     await nft.deployed();
     await marketplace.deployed();
