@@ -66,5 +66,5 @@
 | LogItemClaimed     | An Item has been claimed                       | `uint256 indexed id,` `address indexed claimer`                                                                                                                        |
 
 - [NFTMarketplace: 0x8C43a9eF5291E8F2184df0A05c0b7d9978e230CA](https://sepolia.etherscan.io/address/0x8C43a9eF5291E8F2184df0A05c0b7d9978e230CA#code)
-- NFT: 0x78C3dbea63df38C52CE863989E09EfA38aDb7679
+- [NFT: 0x78C3dbea63df38C52CE863989E09EfA38aDb7679](https://sepolia.etherscan.io/address/0x78C3dbea63df38C52CE863989E09EfA38aDb7679#code)
 
