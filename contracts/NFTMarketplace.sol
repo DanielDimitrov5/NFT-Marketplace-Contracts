@@ -213,14 +213,14 @@ contract Marketplace is Ownable {
         payable(address(this)).transfer(fee);
         payable(item.owner).transfer(item.price - fee);
 
+        item.price = 0;
+        item.owner = msg.sender;
+
         IERC721(item.nftContract).safeTransferFrom(
             seller,
             msg.sender,
             item.tokenId
         );
-
-        item.price = 0;
-        item.owner = msg.sender;
 
         emit LogItemSold(
             _itemId,
@@ -304,17 +304,17 @@ contract Marketplace is Ownable {
 
         offer.seller.transfer(offer.price);
 
-        IERC721(offer.nftContract).safeTransferFrom(
-            offer.seller,
-            msg.sender,
-            offer.tokenId
-        );
-
         Item storage item = items[_itemId];
         item.owner = msg.sender;
 
         delete offers[_itemId][msg.sender];
         delete itemOfferers[_itemId];
+
+        IERC721(offer.nftContract).safeTransferFrom(
+            offer.seller,
+            msg.sender,
+            offer.tokenId
+        );
 
         emit LogItemClaimed(_itemId, msg.sender);
     }
