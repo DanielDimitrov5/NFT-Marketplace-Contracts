@@ -6,7 +6,6 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 
-
 describe("NFT Marketplace", () => {
 
     let nft: NFT;

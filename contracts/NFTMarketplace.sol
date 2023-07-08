@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "hardhat/console.sol";
-
 error Marketplace__CollectionAlreadyAdded(address nftCollection);
 error Marketplace__CollectionIsNotAdded();
 error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
@@ -100,6 +98,10 @@ contract Marketplace is Ownable {
 
     event LogItemClaimed(uint256 indexed id, address indexed claimer);
 
+    /**
+     * @dev Adds a new NFT collection to the marketplace.
+     * @param _nftCollection The address of the NFT collection contract.
+     */
     function addCollection(address _nftCollection) external {
         if (isCollectionAdded[_nftCollection])
             revert Marketplace__CollectionAlreadyAdded(_nftCollection);
@@ -112,6 +114,11 @@ contract Marketplace is Ownable {
         emit LogCollectionAdded(collectionCount.current(), _nftCollection);
     }
 
+    /**
+     * @dev Adds an NFT to the marketplace.
+     * @param _collectionId The ID of the NFT collection to which the NFT belongs.
+     * @param _tokenId The token ID of the NFT to be added.
+     */
     function addItem(uint256 _collectionId, uint256 _tokenId) external {
         address nftCollection = collections[_collectionId];
 
@@ -145,6 +152,11 @@ contract Marketplace is Ownable {
         );
     }
 
+    /**
+     * @dev Lists an NFT for sale in the marketplace.
+     * @param _itemId The ID of the item to be listed.
+     * @param _price The price at which the item should be listed.
+     */
     function listItem(uint256 _itemId, uint256 _price) external {
         Item storage item = items[_itemId];
 
@@ -169,6 +181,10 @@ contract Marketplace is Ownable {
         );
     }
 
+    /**
+     * @dev Allows a buyer to purchase an item listed for sale.
+     * @param _itemId The ID of the item to be purchased.
+     */
     function buyItem(uint256 _itemId) external payable {
         Item storage item = items[_itemId];
 
@@ -178,10 +194,10 @@ contract Marketplace is Ownable {
         if (item.price == 0)
             revert Marketplace__ThisItemIsNotListedForSale(_itemId);
 
-        if (item.price > msg.value)
-            revert Marketplace__NotEnoughtFunds();
+        if (item.price > msg.value) revert Marketplace__NotEnoughtFunds();
 
-        if(item.owner == msg.sender) revert Marketplace__YouCannotBuyYourOwnItem();
+        if (item.owner == msg.sender)
+            revert Marketplace__YouCannotBuyYourOwnItem();
 
         address seller = item.owner;
         uint256 price = item.price;
@@ -216,14 +232,18 @@ contract Marketplace is Ownable {
         );
     }
 
+    /**
+     * @dev Places an offer for an item that is not listed for sale.
+     * @param _itemId The ID of the item for which the offer is being placed.
+     * @param _price The price being offered for the item.
+     */
     function placeOffer(uint256 _itemId, uint256 _price) external {
         Item memory item = items[_itemId];
 
         if (item.id == 0)
             revert Marketplace__ItemWithThisIdDoesNotExist(_itemId);
 
-        if (item.price != 0)
-            revert Marketplace__ItemAlreadyListed(item.id);
+        if (item.price != 0) revert Marketplace__ItemAlreadyListed(item.id);
 
         if (_price == 0) revert Marketplace__PriceCannotBeZero();
 
@@ -250,26 +270,35 @@ contract Marketplace is Ownable {
         );
     }
 
-    function acceptOffer(uint256 _itemid, address offerer) external {
-        Offer storage offer = offers[_itemid][offerer];
+    /**
+     * @dev Accepts an offer made for an item.
+     * @param _itemId The ID of the item for which the offer was made.
+     * @param offerer The address of the account that made the offer.
+     */
+    function acceptOffer(uint256 _itemId, address offerer) external {
+        Offer storage offer = offers[_itemId][offerer];
 
-        if (offer.itemId == 0) revert Marketplace__OfferDoesNotExist(_itemid);
+        if (offer.itemId == 0) revert Marketplace__OfferDoesNotExist(_itemId);
 
         if (offer.seller != msg.sender)
             revert Marketplace__YouAreNotTheOwnerOfThisToken();
 
         offer.isAccepted = true;
 
-        emit LogOfferAccepted(_itemid, offerer);
+        emit LogOfferAccepted(_itemId, offerer);
     }
 
-    function claimItem(uint256 _itemid) external payable {
-        Offer memory offer = offers[_itemid][msg.sender];
+    /**
+     * @dev Allows a buyer to claim an NFT after their offer has been accepted.
+     * @param _itemId The ID of the item to be claimed.
+     */
+    function claimItem(uint256 _itemId) external payable {
+        Offer memory offer = offers[_itemId][msg.sender];
 
-        if (offer.itemId == 0) revert Marketplace__OfferDoesNotExist(_itemid);
+        if (offer.itemId == 0) revert Marketplace__OfferDoesNotExist(_itemId);
 
         if (offer.isAccepted == false)
-            revert Marketplace__OfferIsNotAccepted(_itemid);
+            revert Marketplace__OfferIsNotAccepted(_itemId);
 
         if (offer.price > msg.value) revert Marketplace__NotEnoughtFunds();
 
@@ -281,19 +310,28 @@ contract Marketplace is Ownable {
             offer.tokenId
         );
 
-        Item storage item = items[_itemid];
+        Item storage item = items[_itemId];
         item.owner = msg.sender;
 
-        delete offers[_itemid][msg.sender];
-        delete itemOfferers[_itemid];
+        delete offers[_itemId][msg.sender];
+        delete itemOfferers[_itemId];
 
-        emit LogItemClaimed(_itemid, msg.sender);
+        emit LogItemClaimed(_itemId, msg.sender);
     }
 
+    /**
+     * @dev Allows the contract owner to withdraw the balance of the contract.
+     */
     function withdraw() external onlyOwner {
         payable(msg.sender).transfer(address(this).balance);
     }
 
+    /**
+     * @dev Generates a unique hash for an NFT based on its contract address and token ID.
+     * @param _nftContract The address of the NFT contract.
+     * @param _tokenId The token ID of the NFT.
+     * @return A bytes32 hash uniquely representing the NFT.
+     */
     function getHash(
         address _nftContract,
         uint256 _tokenId
@@ -301,7 +339,14 @@ contract Marketplace is Ownable {
         return keccak256(abi.encodePacked(_nftContract, _tokenId));
     }
 
-    function getOfferers(uint256 itemId) external view returns(address[] memory) {
+    /**
+     * @dev Retrieves the addresses of accounts that have made offers for a specific item.
+     * @param itemId The ID of the item.
+     * @return An array of addresses that have made offers for the item.
+     */
+    function getOfferers(
+        uint256 itemId
+    ) external view returns (address[] memory) {
         return itemOfferers[itemId];
     }
 
