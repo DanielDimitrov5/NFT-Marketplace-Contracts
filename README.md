@@ -65,6 +65,6 @@
 | LogOfferAccepted   | An Offer has been accepted                     | `uint256 indexed id,` `address indexed offerer`                                                                                                                        |
 | LogItemClaimed     | An Item has been claimed                       | `uint256 indexed id,` `address indexed claimer`                                                                                                                        |
 
-- [NFTMarketplace: 0x8C43a9eF5291E8F2184df0A05c0b7d9978e230CA](https://sepolia.etherscan.io/address/0x8C43a9eF5291E8F2184df0A05c0b7d9978e230CA#code)
+- [NFTMarketplace: 0xf4351BA9Ca701Cf689442833CDA5F7FF18C2e00C](https://sepolia.etherscan.io/address/0xf4351BA9Ca701Cf689442833CDA5F7FF18C2e00C#code)
 - [NFT: 0x78C3dbea63df38C52CE863989E09EfA38aDb7679](https://sepolia.etherscan.io/address/0xd3c0C104b6419CA9ABA2aA58f3E1c8F994F29d2A#code)
 
