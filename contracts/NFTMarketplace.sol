@@ -1,28 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-error Marketplace__CollectionAlreadyAdded(address nftCollection);
-error Marketplace__CollectionIsNotAdded();
-error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
-error Marketplace__YouAreNotTheOwnerOfThisToken();
-error Marketplace__ItemAlreadyAdded();
-error Marketplace__ItemAlreadyListed(uint256 id);
-error Marketplace__ThisItemIsNotListedForSale(uint256 id);
-error Marketplace__NotEnoughtFunds();
-error Marketplace__ThisItemIsListedForSale();
-error Marketplace__YouCannotBuyYourOwnItem();
-error Marketplace__YouAlreadyMadeAnOffer();
-error Marketplace__OfferDoesNotExist(uint256 id);
-error Marketplace__YouAreNotTheOwnerOfThisOffer(uint256 id);
-error Marketplace__YouCannotPlaceAnOfferOnYourOwnItem(uint256 id);
-error Marketplace__PriceCannotBeZero();
-error Marketplace__OfferIsNotAccepted(uint256 id);
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Marketplace is Ownable {
+
+    error Marketplace__CollectionAlreadyAdded(address nftCollection);
+    error Marketplace__CollectionIsNotAdded();
+    error Marketplace__ItemWithThisIdDoesNotExist(uint256 id);
+    error Marketplace__YouAreNotTheOwnerOfThisToken();
+    error Marketplace__ItemAlreadyAdded();
+    error Marketplace__ItemAlreadyListed(uint256 id);
+    error Marketplace__ThisItemIsNotListedForSale(uint256 id);
+    error Marketplace__NotEnoughtFunds();
+    error Marketplace__ThisItemIsListedForSale();
+    error Marketplace__YouCannotBuyYourOwnItem();
+    error Marketplace__YouAlreadyMadeAnOffer();
+    error Marketplace__OfferDoesNotExist(uint256 id);
+    error Marketplace__YouAreNotTheOwnerOfThisOffer(uint256 id);
+    error Marketplace__YouCannotPlaceAnOfferOnYourOwnItem(uint256 id);
+    error Marketplace__PriceCannotBeZero();
+    error Marketplace__OfferIsNotAccepted(uint256 id);
+
     using Counters for Counters.Counter;
 
     uint8 public immutable feePercent;
